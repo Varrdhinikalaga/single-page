@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Happy Farming</title>
+  <style>
+    :root{--bg:#f6fbf6;--card:#ffffff;--accent:#2f855a;--muted:#6b7280}
+    *{box-sizing:border-box;font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial}
+    body{margin:0;background:linear-gradient(180deg,#f0fff4, #e6f7ea);color:#0f172a}
+    .container{max-width:980px;margin:28px auto;padding:20px}
+    .card{background:var(--card);border-radius:12px;padding:18px;box-shadow:0 6px 18px rgba(15,23,42,0.06)}
+    h1{margin:0 0 12px;font-size:20px;color:var(--accent)}
+    .grid{display:grid;grid-template-columns:1fr 360px;gap:18px}
+    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+    input[type=text], input[type=number], select, textarea{width:100%;padding:10px;border-radius:8px;border:1px solid #e6eef0;background:#fbfffb}
+    .row{display:flex;gap:10px}
+    .btn{background:var(--accent);color:white;padding:10px 12px;border:none;border-radius:8px;cursor:pointer}
+    .btn.secondary{background:#eef6f0;color:var(--accent);border:1px solid #d7efe1}
+    .small{font-size:13px;color:var(--muted)}
+    .result{margin-top:12px;padding:12px;border-radius:8px;background:#f7fff7;border:1px dashed #dbeedb}
+    .poster{margin-top:20px;padding:16px;border-radius:12px;background:#e9fcef;border:2px solid #c3ebd3;text-align:center}
+    .poster h2{margin:0;color:#1c6b3c}
+    .poster p{margin:8px 0;font-size:15px}
+
+    .chat{height:480px;display:flex;flex-direction:column;border-radius:10px;overflow:hidden}
+    .messages{flex:1;padding:12px;overflow-y:auto;background:linear-gradient(180deg,#ffffff, #f7fff7)}
+    .msg{max-width:78%;margin-bottom:8px;padding:10px;border-radius:10px}
+    .msg.user{margin-left:auto;background:#d1f5d6}
+    .msg.bot{margin-right:auto;background:#f0fff4}
+    .chat-controls{display:flex;gap:8px;padding:10px;border-top:1px solid #ecf6ee;background:#fff}
+    .lang-select{width:160px}
+    .voice-btn{padding:8px;border-radius:8px;border:1px solid #e6efe6;background:#fff}
+
+    @media (max-width:950px){.grid{grid-template-columns:1fr;}.chat{height:380px}}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>🌱 Happy Farming</h1>
+      <p class="small">Enter soil details and chat with a local-language assistant. This is a single-file demo — connect to a real backend or translation API for production.</p>
+
+      <div class="grid" style="margin-top:18px">
+        <div>
+          <div class="card" style="padding:14px">
+            <label for="soilType">Soil type</label>
+            <select id="soilType">
+              <option value="loamy">Loamy</option>
+              <option value="sandy">Sandy</option>
+              <option value="clay">Clay</option>
+              <option value="silty">Silty</option>
+              <option value="peaty">Peaty</option>
+            </select>
+
+            <div style="margin-top:12px">
+              <label for="ph">Soil pH</label>
+              <input id="ph" type="number" min="0" max="14" step="0.1" placeholder="Enter pH (0 - 14)" />
+              <div class="small" style="margin-top:6px">Tip: pH 6–7 is ideal for most crops.</div>
+            </div>
+
+            <div style="margin-top:12px">
+              <label for="crop">Crop / Problem (optional)</label>
+              <input id="crop" type="text" placeholder="e.g. Tomato, Paddy, poor growth" />
+            </div>
+
+            <div style="margin-top:12px">
+              <label for="area">Field Area (in acres)</label>
+              <input id="area" type="number" min="0" step="0.1" placeholder="Enter area in acres" />
+            </div>
+
+            <div style="margin-top:12px" class="row">
+              <button id="analyzeBtn" class="btn">Analyze Soil</button>
+              <button id="resetBtn" class="btn secondary">Reset</button>
+            </div>
+
+            <div id="analysis" class="result" style="display:none"></div>
+          </div>
+
+          <div class="poster" id="poster" style="display:none">
+            <h2>🌾 Farming Recommendation</h2>
+            <p id="rotation"></p>
+            <p id="fertilizer"></p>
+            <p id="yield"></p>
+          </div>
+
+          <div class="card" style="margin-top:14px;padding:12px">
+            <h3 style="margin:0 0 8px">Quick Actions</h3>
+            <div class="row" style="margin-top:8px">
+              <button class="btn secondary" id="downloadReport">Download Report</button>
+              <button class="btn secondary" id="takePhoto">Attach Photo</button>
+            </div>
+            <div class="small" style="margin-top:8px">(Photo attach uses browser file picker; report will be generated from the form.)</div>
+          </div>
+        </div>
+
+        <div>
+          <div class="card chat">
+            <div style="padding:10px;border-bottom:1px solid #ecf6ee;background:#f9fff9">
+              <strong>Local-Language Assistant</strong>
+              <div class="small">Select language, speak or type — replies are simulated locally in this demo.</div>
+            </div>
+            <div id="messages" class="messages"></div>
+
+            <div class="chat-controls">
+              <select id="language" class="lang-select">
+                <option value="en-US">English</option>
+                <option value="hi-IN">Hindi (हिन्दी)</option>
+                <option value="te-IN">Telugu (తెలుగు)</option>
+                <option value="kn-IN">Kannada (ಕನ್ನಡ)</option>
+                <option value="or-IN">Odia (ଓଡିଆ)</option>
+              </select>
+
+              <input id="chatInput" type="text" placeholder="Type your message here..." style="flex:1" />
+              <button id="sendBtn" class="btn">Send</button>
+              <button id="voiceBtn" class="voice-btn" title="Voice input">🎙</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="small" style="margin-top:12px;color:#334155">Note: This demo includes a simple local-language fallback and pH analysis logic. For real translation/chat, connect the UI to a translation/chat API (e.g., Google Translate, Microsoft Translator, or a custom backend).</div>
+    </div>
+  </div>
+
+  <script>
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const areaInput = document.getElementById('area');
+    const poster = document.getElementById('poster');
+    const rotationEl = document.getElementById('rotation');
+    const fertilizerEl = document.getElementById('fertilizer');
+    const yieldEl = document.getElementById('yield');
+
+    const messagesEl = document.getElementById('messages');
+    const chatInput = document.getElementById('chatInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const languageSelect = document.getElementById('language');
+
+    function appendMessage(text, sender) {
+      const msgDiv = document.createElement('div');
+      msgDiv.className = 'msg ' + (sender === 'user' ? 'user' : 'bot');
+      msgDiv.textContent = text;
+      messagesEl.appendChild(msgDiv);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const message = chatInput.value.trim();
+      if (!message) return;
+      appendMessage(message, 'user');
+      chatInput.value = '';
+      try {
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message,
+            language: languageSelect.value,
+            context: {
+              soilType: document.getElementById('soilType').value,
+              ph: parseFloat(document.getElementById('ph').value),
+              area: parseFloat(document.getElementById('area').value),
+              crop: document.getElementById('crop').value
+            }
+          })
+        });
+        const data = await response.json();
+        if (data.reply) {
+          appendMessage(data.reply, 'bot');
+        } else {
+          appendMessage('Error: No reply from server.', 'bot');
+        }
+      } catch (err) {
+        appendMessage('Error: ' + err.message, 'bot');
+      }
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
+
+    analyzeBtn.addEventListener('click', async () => {
+      const soilType = document.getElementById('soilType').value;
+      const ph = parseFloat(document.getElementById('ph').value);
+      const area = parseFloat(document.getElementById('area').value);
+      const crop = document.getElementById('crop').value;
+      const language = languageSelect.value;
+
+      if (!area || area <= 0) {
+        poster.style.display = 'none';
+        document.getElementById('analysis').style.display = 'none';
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ soilType, ph, area, crop, language })
+        });
+        const data = await response.json();
+        if (data.analysis) {
+          const analysisEl = document.getElementById('analysis');
+          analysisEl.style.display = 'block';
+          analysisEl.textContent = data.analysis;
+        } else {
+          document.getElementById('analysis').style.display = 'none';
+        }
+      } catch (err) {
+        document.getElementById('analysis').style.display = 'none';
+      }
+
+      poster.style.display = 'block';
+      rotationEl.innerText = `Recommended Crop Rotation: Legumes → Cereals → Oilseeds (rotate yearly).`;
+      fertilizerEl.innerText = `Natural Fertilizer: Use ~${(area * 2).toFixed(1)} tons of compost or farmyard manure.`;
+      yieldEl.innerText = `Estimated Yield: ${(area * 25).toFixed(1)} quintals (approx, based on soil type).`;
+    });
+
+    resetBtn.addEventListener('click', () => {
+      document.getElementById('soilType').value = 'loamy';
+      document.getElementById('ph').value = '';
+      document.getElementById('crop').value = '';
+      areaInput.value = '';
+      poster.style.display = 'none';
+      document.getElementById('analysis').style.display = 'none';
+      messagesEl.innerHTML = '';
+      chatInput.value = '';
+    });
+  </script>
+</body>
+</html>
